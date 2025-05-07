@@ -1,10 +1,12 @@
 import json
+import os
 from telethon import TelegramClient, events
 from keep_alive import keep_alive 
 
-# Credenciais da API do Telegram
-API_ID = 20414535  # Substitua pelo seu API_ID
-API_HASH = '8e7fa395ff93ba4b23cf4a14176f7e7d'  # Substitua pelo seu API_HASH
+# Obtenha as credenciais da API do Telegram das variáveis de ambiente
+API_ID = int(os.getenv("API_ID"))  # Certifique-se de que o API_ID seja um número inteiro
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # Nome da sessão do cliente
 SESSION_NAME = 'monitorgrupos_userbot'
@@ -28,8 +30,8 @@ def salvar_palavras(palavras):
 # Lista de palavras-chave
 palavras_chave = carregar_palavras()
 
-# Iniciar cliente do Telegram
-client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
+# Iniciar cliente do Telegram usando o token do bot
+client = TelegramClient(SESSION_NAME, API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 # Evento para lidar com comandos de texto
 @client.on(events.NewMessage(pattern='/start'))
@@ -123,10 +125,10 @@ async def monitorar_mensagens(event):
                 f"⚠️ Palavra-chave detectada: '{palavra}'\n\nMensagem: {event.message.message}\n\nDe: {event.chat.title if event.chat else 'Mensagem direta'}"
             )
             break
+
 # Inicie o servidor HTTP para manter o bot ativo
 keep_alive()
 
 # Conectar e iniciar o cliente
 print("Monitorando mensagens... Pressione Ctrl+C para sair.")
-client.start()
 client.run_until_disconnected()
