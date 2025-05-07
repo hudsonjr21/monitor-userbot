@@ -1,7 +1,7 @@
 import json
 import os
 import asyncio
-from telethon import TelegramClient, events
+from telethon import TelegramClient, events, Button
 from keep_alive import keep_alive
 from dotenv import load_dotenv  # Para carregar variáveis do .env
 
@@ -47,83 +47,84 @@ async def main():
 
     print("Sessão autenticada com sucesso!")
 
-    # Evento para lidar com comandos de texto
+    # Menu principal
     @client.on(events.NewMessage(pattern='/start'))
     async def start(event):
+        buttons = [
+            [Button.inline("➕ Adicionar Palavras", b"add_palavras")],
+            [Button.inline("❌ Remover Palavras", b"remover_palavras")],
+            [Button.inline("🔍 Ver Palavras Configuradas", b"ver_palavras")],
+        ]
         mensagem = (
             "🤖 **Bem-vindo ao Userbot de Filtro de Palavras!**\n\n"
-            "Use os comandos abaixo para gerenciar palavras-chave e filtrar mensagens:\n"
-            "🟢 `/add palavra1, palavra2` - Adiciona novas palavras-chave.\n"
-            "🟢 `/remover palavra1, palavra2` - Remove palavras-chave.\n"
-            "🟢 `/ver` - Lista todas as palavras configuradas.\n\n"
-            "📌 O bot monitora mensagens automaticamente em todos os grupos e canais que você participa."
+            "Escolha uma das opções abaixo para gerenciar suas palavras-chave:"
         )
-        await event.respond(mensagem)
+        await event.respond(mensagem, buttons=buttons)
 
-    @client.on(events.NewMessage(pattern='/add'))
+    # Lidando com botões inline
+    @client.on(events.CallbackQuery)
+    async def callback(event):
+        if event.data == b"add_palavras":
+            await event.respond(
+                "Envie as palavras que deseja adicionar, separadas por vírgula.\n\n💡 Exemplo: `palavra1, palavra2, palavra3`"
+            )
+        elif event.data == b"remover_palavras":
+            await event.respond(
+                "Envie as palavras que deseja remover, separadas por vírgula.\n\n💡 Exemplo: `palavra1, palavra2, palavra3`"
+            )
+        elif event.data == b"ver_palavras":
+            if not palavras_chave:
+                await event.respond("🔍 Nenhuma palavra-chave foi configurada ainda.")
+            else:
+                await event.respond(
+                    "🔑 Palavras-chave configuradas:\n" + "\n".join(palavras_chave)
+                )
+
+    # Evento para adicionar palavras
+    @client.on(events.NewMessage)
     async def add_palavra(event):
-        if not event.message.message.strip().split(" ", 1)[-1]:
-            await event.respond(
-                "⚠️ Por favor, forneça palavras para adicionar.\n"
-                "💡 Uso: `/add palavra1, palavra2, palavra3`"
-            )
-            return
+        if event.text.startswith("/add "):
+            novas_palavras = [
+                p.strip().lower()
+                for p in event.text.split(" ", 1)[-1].split(",")
+            ]
+            palavras_adicionadas = []
+            for palavra in novas_palavras:
+                if palavra and palavra not in palavras_chave:
+                    palavras_chave.append(palavra)
+                    palavras_adicionadas.append(palavra)
 
-        novas_palavras = [
-            p.strip().lower()
-            for p in event.message.message.split(" ", 1)[-1].split(",")
-        ]
-        palavras_adicionadas = []
-        for palavra in novas_palavras:
-            if palavra and palavra not in palavras_chave:
-                palavras_chave.append(palavra)
-                palavras_adicionadas.append(palavra)
+            salvar_palavras(palavras_chave)
 
-        salvar_palavras(palavras_chave)
+            if palavras_adicionadas:
+                await event.respond(
+                    f"✅ Palavras adicionadas com sucesso:\n{', '.join(palavras_adicionadas)}"
+                )
+            else:
+                await event.respond("⚠️ Nenhuma palavra nova foi adicionada.")
 
-        if palavras_adicionadas:
-            await event.respond(
-                f"✅ Palavras adicionadas com sucesso:\n{', '.join(palavras_adicionadas)}"
-            )
-        else:
-            await event.respond("⚠️ Nenhuma palavra nova foi adicionada.")
-
-    @client.on(events.NewMessage(pattern='/remover'))
+    # Evento para remover palavras
+    @client.on(events.NewMessage)
     async def remover_palavra(event):
-        if not event.message.message.strip().split(" ", 1)[-1]:
-            await event.respond(
-                "⚠️ Por favor, forneça palavras para remover.\n"
-                "💡 Uso: `/remover palavra1, palavra2, palavra3`"
-            )
-            return
+        if event.text.startswith("/remover "):
+            palavras_para_remover = [
+                p.strip().lower()
+                for p in event.text.split(" ", 1)[-1].split(",")
+            ]
+            palavras_removidas = []
+            for palavra in palavras_para_remover:
+                if palavra in palavras_chave:
+                    palavras_chave.remove(palavra)
+                    palavras_removidas.append(palavra)
 
-        palavras_para_remover = [
-            p.strip().lower()
-            for p in event.message.message.split(" ", 1)[-1].split(",")
-        ]
-        palavras_removidas = []
-        for palavra in palavras_para_remover:
-            if palavra in palavras_chave:
-                palavras_chave.remove(palavra)
-                palavras_removidas.append(palavra)
+            salvar_palavras(palavras_chave)
 
-        salvar_palavras(palavras_chave)
-
-        if palavras_removidas:
-            await event.respond(
-                f"✅ Palavras removidas com sucesso:\n{', '.join(palavras_removidas)}"
-            )
-        else:
-            await event.respond("⚠️ Nenhuma palavra foi encontrada para remover.")
-
-    @client.on(events.NewMessage(pattern='/ver'))
-    async def verificar_palavras(event):
-        if not palavras_chave:
-            await event.respond("🔍 Nenhuma palavra-chave foi configurada ainda.")
-        else:
-            await event.respond(
-                "🔑 Palavras-chave configuradas:\n" + "\n".join(palavras_chave)
-            )
+            if palavras_removidas:
+                await event.respond(
+                    f"✅ Palavras removidas com sucesso:\n{', '.join(palavras_removidas)}"
+                )
+            else:
+                await event.respond("⚠️ Nenhuma palavra foi encontrada para remover.")
 
     # Evento para monitorar mensagens
     @client.on(events.NewMessage)
