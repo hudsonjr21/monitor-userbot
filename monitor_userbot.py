@@ -153,12 +153,12 @@ async def main():
                     mensagem_alerta = (
                         f"⚠️ Palavra-chave detectada: '{palavra}'\n\n"
                         f"Mensagem: {event.message.message}\n\n"
-                        f"De: {event.chat.title if event.chat else 'Mensagem direta'}"
+                        f"Grupo: {event.chat.title if event.chat else 'Mensagem direta'}"
                     )
                     # Envia para o grupo
-                    await client.send_message(DESTINATARIO_GRUPO, mensagem_alerta)
+                    await client.send_message(DESTINATARIO_GRUPO, f"@Hudson_Jr21 {mensagem_alerta}")
                     # Envia notificação direta para o usuário com menção
-                    await client.send_message(DESTINATARIO_USUARIO, f"@Hudson_Jr21 {mensagem_alerta}")
+                    # await client.send_message(DESTINATARIO_USUARIO, f"@Hudson_Jr21 {mensagem_alerta}")
                     break
         except TypeNotFoundError as e:
             print(f"Erro ao processar mensagem: {e}")
