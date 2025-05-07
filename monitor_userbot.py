@@ -157,8 +157,8 @@ async def main():
                     )
                     # Envia para o grupo
                     await client.send_message(DESTINATARIO_GRUPO, mensagem_alerta)
-                    # Envia notificação direta para o usuário
-                    await client.send_message(DESTINATARIO_USUARIO, mensagem_alerta)
+                    # Envia notificação direta para o usuário com menção
+                    await client.send_message(DESTINATARIO_USUARIO, f"@Hudson_Jr21 {mensagem_alerta}")
                     break
         except TypeNotFoundError as e:
             print(f"Erro ao processar mensagem: {e}")
