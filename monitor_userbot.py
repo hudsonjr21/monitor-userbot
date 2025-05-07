@@ -18,6 +18,9 @@ SESSION_NAME = 'monitorgrupos_userbot'
 # Arquivo para salvar as palavras-chave
 ARQUIVO_PALAVRAS = "palavras_userbot.json"
 
+# ID do grupo para enviar notificações
+DESTINATARIO = -1002649552991  # Substitua pelo ID do grupo Alertas-Promocao
+
 # Função para carregar palavras-chave
 def carregar_palavras():
     try:
@@ -135,7 +138,7 @@ async def main():
         for palavra in palavras_chave:
             if palavra in texto:
                 await client.send_message(
-                    'me',
+                    DESTINATARIO,
                     f"⚠️ Palavra-chave detectada: '{palavra}'\n\nMensagem: {event.message.message}\n\nDe: {event.chat.title if event.chat else 'Mensagem direta'}"
                 )
                 break
