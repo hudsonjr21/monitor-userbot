@@ -2,6 +2,7 @@ import json
 import os
 import asyncio
 from telethon import TelegramClient, events
+from telethon.errors.common import TypeNotFoundError
 from keep_alive import keep_alive
 from dotenv import load_dotenv  # Para carregar variáveis do .env
 
@@ -12,6 +13,7 @@ load_dotenv()
 API_ID = int(os.getenv("API_ID"))  # Certifique-se de que o API_ID seja um número inteiro
 API_HASH = os.getenv("API_HASH")
 print(f"API_ID: {API_ID}, API_HASH: {API_HASH}")
+
 # Nome da sessão do cliente
 SESSION_NAME = 'monitorgrupos_userbot'
 
@@ -19,20 +21,30 @@ SESSION_NAME = 'monitorgrupos_userbot'
 ARQUIVO_PALAVRAS = "palavras_userbot.json"
 
 # ID do grupo para enviar notificações
-DESTINATARIO = -1002649552991  # Substitua pelo ID do grupo Alertas-Promocao
+DESTINATARIO_GRUPO = -1002649552991  # Substitua pelo ID do grupo Alertas-Promocao
+
+# ID do usuário para notificações diretas (seu ID no Telegram)
+DESTINATARIO_USUARIO = 984557486  # Substitua pelo seu User ID
 
 # Função para carregar palavras-chave
 def carregar_palavras():
     try:
-        with open(ARQUIVO_PALAVRAS, "r") as file:
-            return json.load(file)
-    except FileNotFoundError:
+        if os.path.exists(ARQUIVO_PALAVRAS):
+            with open(ARQUIVO_PALAVRAS, "r") as file:
+                return json.load(file)
+        else:
+            return []
+    except json.JSONDecodeError:
+        print("Erro ao carregar o arquivo JSON. O arquivo será redefinido.")
         return []
 
 # Função para salvar palavras-chave
 def salvar_palavras(palavras):
-    with open(ARQUIVO_PALAVRAS, "w") as file:
-        json.dump(palavras, file, ensure_ascii=False, indent=4)
+    try:
+        with open(ARQUIVO_PALAVRAS, "w") as file:
+            json.dump(palavras, file, ensure_ascii=False, indent=4)
+    except Exception as e:
+        print(f"Erro ao salvar palavras no arquivo: {e}")
 
 # Lista de palavras-chave
 palavras_chave = carregar_palavras()
@@ -131,17 +143,27 @@ async def main():
     # Evento para monitorar mensagens
     @client.on(events.NewMessage)
     async def monitorar_mensagens(event):
-        if not event.message.message:
-            return
+        try:
+            if not event.message.message:
+                return
 
-        texto = event.message.message.lower()
-        for palavra in palavras_chave:
-            if palavra in texto:
-                await client.send_message(
-                    DESTINATARIO,
-                    f"⚠️ Palavra-chave detectada: '{palavra}'\n\nMensagem: {event.message.message}\n\nDe: {event.chat.title if event.chat else 'Mensagem direta'}"
-                )
-                break
+            texto = event.message.message.lower()
+            for palavra in palavras_chave:
+                if palavra in texto:
+                    mensagem_alerta = (
+                        f"⚠️ Palavra-chave detectada: '{palavra}'\n\n"
+                        f"Mensagem: {event.message.message}\n\n"
+                        f"De: {event.chat.title if event.chat else 'Mensagem direta'}"
+                    )
+                    # Envia para o grupo
+                    await client.send_message(DESTINATARIO_GRUPO, mensagem_alerta)
+                    # Envia notificação direta para o usuário
+                    await client.send_message(DESTINATARIO_USUARIO, mensagem_alerta)
+                    break
+        except TypeNotFoundError as e:
+            print(f"Erro ao processar mensagem: {e}")
+        except Exception as e:
+            print(f"Erro inesperado: {e}")
 
     # Inicie o servidor HTTP para manter o bot ativo
     keep_alive()
