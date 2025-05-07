@@ -55,7 +55,7 @@ async def main():
             "Use os comandos abaixo para gerenciar palavras-chave e filtrar mensagens:\n"
             "🟢 `/add palavra1, palavra2` - Adiciona novas palavras-chave.\n"
             "🟢 `/remover palavra1, palavra2` - Remove palavras-chave.\n"
-            "🟢 `/verificarpalavras` - Lista todas as palavras configuradas.\n\n"
+            "🟢 `/ver` - Lista todas as palavras configuradas.\n\n"
             "📌 O bot monitora mensagens automaticamente em todos os grupos e canais que você participa."
         )
         await event.respond(mensagem)
@@ -116,7 +116,7 @@ async def main():
         else:
             await event.respond("⚠️ Nenhuma palavra foi encontrada para remover.")
 
-    @client.on(events.NewMessage(pattern='/verificarpalavras'))
+    @client.on(events.NewMessage(pattern='/ver'))
     async def verificar_palavras(event):
         if not palavras_chave:
             await event.respond("🔍 Nenhuma palavra-chave foi configurada ainda.")
