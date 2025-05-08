@@ -1,12 +1,11 @@
 import json
 import os
 import asyncio
-import re
-import unidecode  # Corrigido: Importar biblioteca para remover acentos
 from telethon import TelegramClient, events
 from telethon.errors.common import TypeNotFoundError
 from keep_alive import keep_alive
 from dotenv import load_dotenv  # Para carregar variáveis do .env
+import re  # Biblioteca para trabalhar com expressões regulares
 
 # Carrega variáveis do arquivo .env
 load_dotenv()
@@ -26,7 +25,7 @@ ARQUIVO_PALAVRAS = "palavras_userbot.json"
 DESTINATARIO_GRUPO = -1002649552991  # Substitua pelo ID do grupo Alertas-Promocao
 
 # ID do usuário para notificações diretas (seu ID no Telegram)
-DESTINATARIO_USUARIO = 6222930920  # Substitua pelo seu User ID
+DESTINATARIO_USUARIO = 6222930920  # Substitua pelo seu User ID(vitoriaid)
 
 # Função para carregar palavras-chave
 def carregar_palavras():
@@ -142,37 +141,32 @@ async def main():
                 "🔑 Palavras-chave configuradas:\n" + "\n".join(palavras_chave)
             )
 
-# Evento para monitorar mensagens
-@client.on(events.NewMessage)
-async def monitorar_mensagens(event):
-    try:
-        if not event.message.message:
-            return
+    # Evento para monitorar mensagens
+    @client.on(events.NewMessage)
+    async def monitorar_mensagens(event):
+        try:
+            if not event.message.message:
+                return
 
-        # Remove acentos e transforma em minúsculas
-        texto = unidecode.unidecode(event.message.message).lower()
-
-        for palavra in palavras_chave:
-            # Remove acentos da palavra-chave
-            palavra_normalizada = unidecode.unidecode(palavra).lower()
-            
-            # Usar regex para encontrar a palavra isolada
-            padrao = r'\b' + re.escape(palavra_normalizada) + r'\b'
-            if re.search(padrao, texto):
-                mensagem_alerta = (
-                    f"⚠️ Palavra-chave detectada: '{palavra}'\n\n"
-                    f"Mensagem: {event.message.message}\n\n"
-                    f"De: {event.chat.title if event.chat else 'Mensagem direta'}"
-                )
-                # Envia para o grupo
-                await client.send_message(DESTINATARIO_GRUPO, f"@Hudson_Jr21 {mensagem_alerta}")
-                # Envia notificação direta para o usuário
-                await client.send_message(DESTINATARIO_USUARIO, mensagem_alerta)
-                break
-    except TypeNotFoundError as e:
-        print(f"Erro ao processar mensagem: {e}")
-    except Exception as e:
-        print(f"Erro inesperado: {e}")
+            texto = event.message.message.lower()
+            for palavra in palavras_chave:
+                # Usar regex para encontrar a palavra isolada
+                padrao = r'\b' + re.escape(palavra) + r'\b'
+                if re.search(padrao, texto):
+                    mensagem_alerta = (
+                        f"⚠️ Promoção de: '{palavra}'\n\n"
+                        f"Mensagem: {event.message.message}\n\n"
+                        f"Grupo: {event.chat.title if event.chat else 'Mensagem direta'}"
+                    )
+                    # Envia para o grupo
+                    await client.send_message(DESTINATARIO_GRUPO, f"{mensagem_alerta} \n @Hudson_Jr21")
+                    # Envia notificação direta para o usuário com menção
+                    # await client.send_message(DESTINATARIO_USUARIO, mensagem_alerta)
+                    break
+        except TypeNotFoundError as e:
+            print(f"Erro ao processar mensagem: {e}")
+        except Exception as e:
+            print(f"Erro inesperado: {e}")
 
     # Inicie o servidor HTTP para manter o bot ativo
     keep_alive()
