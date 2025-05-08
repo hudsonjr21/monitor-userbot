@@ -140,30 +140,38 @@ async def main():
                 "🔑 Palavras-chave configuradas:\n" + "\n".join(palavras_chave)
             )
 
-    # Evento para monitorar mensagens
-    @client.on(events.NewMessage)
-    async def monitorar_mensagens(event):
-        try:
-            if not event.message.message:
-                return
 
-            texto = event.message.message.lower()
-            for palavra in palavras_chave:
-                if palavra in texto:
-                    mensagem_alerta = (
-                        f"⚠️ Palavra-chave detectada: '{palavra}'\n\n"
-                        f"Mensagem: {event.message.message}\n\n"
-                        f"Grupo: {event.chat.title if event.chat else 'Mensagem direta'}"
-                    )
-                    # Envia para o grupo
-                    await client.send_message(DESTINATARIO_GRUPO, f"@Hudson_Jr21 {mensagem_alerta}")
-                    # Envia notificação direta para o usuário com menção
-                    # await client.send_message(DESTINATARIO_USUARIO, mensagem_alerta)
-                    break
-        except TypeNotFoundError as e:
-            print(f"Erro ao processar mensagem: {e}")
-        except Exception as e:
-            print(f"Erro inesperado: {e}")
+# Evento para monitorar mensagens
+@client.on(events.NewMessage)
+async def monitorar_mensagens(event):
+    try:
+        if not event.message.message:
+            return
+
+        # Remove acentos e transforma em minúsculas
+        texto = unidecode.unidecode(event.message.message).lower()
+
+        for palavra in palavras_chave:
+            # Remove acentos da palavra-chave
+            palavra_normalizada = unidecode.unidecode(palavra).lower()
+            
+            # Usar regex para encontrar a palavra isolada
+            padrao = r'\b' + re.escape(palavra_normalizada) + r'\b'
+            if re.search(padrao, texto):
+                mensagem_alerta = (
+                    f"⚠️ Palavra-chave detectada: '{palavra}'\n\n"
+                    f"Mensagem: {event.message.message}\n\n"
+                    f"De: {event.chat.title if event.chat else 'Mensagem direta'}"
+                )
+                # Envia para o grupo
+                await client.send_message(DESTINATARIO_GRUPO, f"@Hudson_Jr21 {mensagem_alerta}")
+                # Envia notificação direta para o usuário com menção
+                # await client.send_message(DESTINATARIO_USUARIO, mensagem_alerta))
+                break
+    except TypeNotFoundError as e:
+        print(f"Erro ao processar mensagem: {e}")
+    except Exception as e:
+        print(f"Erro inesperado: {e}")
 
     # Inicie o servidor HTTP para manter o bot ativo
     keep_alive()
