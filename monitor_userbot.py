@@ -1,6 +1,8 @@
 import json
 import os
 import asyncio
+import re
+import unidecode  # Corrigido: Importar biblioteca para remover acentos
 from telethon import TelegramClient, events
 from telethon.errors.common import TypeNotFoundError
 from keep_alive import keep_alive
@@ -24,7 +26,7 @@ ARQUIVO_PALAVRAS = "palavras_userbot.json"
 DESTINATARIO_GRUPO = -1002649552991  # Substitua pelo ID do grupo Alertas-Promocao
 
 # ID do usuário para notificações diretas (seu ID no Telegram)
-DESTINATARIO_USUARIO = 6222930920  # Substitua pelo seu User ID(vitoriaid)
+DESTINATARIO_USUARIO = 6222930920  # Substitua pelo seu User ID
 
 # Função para carregar palavras-chave
 def carregar_palavras():
@@ -140,7 +142,6 @@ async def main():
                 "🔑 Palavras-chave configuradas:\n" + "\n".join(palavras_chave)
             )
 
-
 # Evento para monitorar mensagens
 @client.on(events.NewMessage)
 async def monitorar_mensagens(event):
@@ -165,8 +166,8 @@ async def monitorar_mensagens(event):
                 )
                 # Envia para o grupo
                 await client.send_message(DESTINATARIO_GRUPO, f"@Hudson_Jr21 {mensagem_alerta}")
-                # Envia notificação direta para o usuário com menção
-                # await client.send_message(DESTINATARIO_USUARIO, mensagem_alerta))
+                # Envia notificação direta para o usuário
+                await client.send_message(DESTINATARIO_USUARIO, mensagem_alerta)
                 break
     except TypeNotFoundError as e:
         print(f"Erro ao processar mensagem: {e}")
