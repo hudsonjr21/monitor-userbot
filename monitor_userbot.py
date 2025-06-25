@@ -1,6 +1,7 @@
 import json
 import os
 import asyncio
+import time  # <--- MODIFICAÇÃO 1: Import adicionado
 from telethon import TelegramClient, events
 from telethon.errors.common import TypeNotFoundError
 from keep_alive import keep_alive
@@ -13,7 +14,7 @@ load_dotenv()
 # Obtenha as credenciais da API do Telegram das variáveis de ambiente
 API_ID = int(os.getenv("API_ID"))  # Certifique-se de que o API_ID seja um número inteiro
 API_HASH = os.getenv("API_HASH")
-print(f"API_ID: {API_ID}, API_HASH: {API_HASH}")
+print(f"API_ID: {API_ID}, API_HASH: {'*' * len(API_HASH)}")
 
 # Nome da sessão do cliente
 SESSION_NAME = 'monitorgrupos_userbot'
@@ -175,5 +176,25 @@ async def main():
     print("Monitorando mensagens... Pressione Ctrl+C para sair.")
     await client.run_until_disconnected()
 
-# Executa o loop principal
-asyncio.run(main())
+
+# <--- MODIFICAÇÃO 2: Bloco de execução robusto adicionado --->
+if __name__ == "__main__":
+    # O loop infinito que garante que o bot sempre tente ficar online.
+    while True:
+        try:
+            # O asyncio.run vai rodar a função main. 
+            # Se a conexão com o Telegram cair, ele vai gerar um erro.
+            asyncio.run(main())
+
+        except KeyboardInterrupt:
+            # Esta parte é para que você ainda consiga parar o bot com Ctrl+C.
+            print("Bot encerrado manualmente.")
+            break # Quebra o loop e encerra o programa
+
+        except Exception as e:
+            # Aqui é a mágica: qualquer outro erro (queda de conexão, etc.)
+            # será capturado aqui.
+            print(f"Ocorreu um erro inesperado que derrubou o bot: {e}")
+            print("Tentando reiniciar em 30 segundos...")
+            # Ele espera 30 segundos antes de o loop tentar rodar o bot de novo.
+            time.sleep(30)
