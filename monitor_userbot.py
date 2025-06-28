@@ -1,18 +1,19 @@
 import json
 import os
 import asyncio
-import time  # <--- MODIFICAÇÃO 1: Import adicionado
+import time
 from telethon import TelegramClient, events
+# A linha "from telethon.tl.custom import Button" foi removida pois não será usada
 from telethon.errors.common import TypeNotFoundError
 from keep_alive import keep_alive
-from dotenv import load_dotenv  # Para carregar variáveis do .env
-import re  # Biblioteca para trabalhar com expressões regulares
+from dotenv import load_dotenv
+import re
 
 # Carrega variáveis do arquivo .env
 load_dotenv()
 
 # Obtenha as credenciais da API do Telegram das variáveis de ambiente
-API_ID = int(os.getenv("API_ID"))  # Certifique-se de que o API_ID seja um número inteiro
+API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 print(f"API_ID: {API_ID}, API_HASH: {'*' * len(API_HASH)}")
 
@@ -23,10 +24,10 @@ SESSION_NAME = 'monitorgrupos_userbot'
 ARQUIVO_PALAVRAS = "palavras_userbot.json"
 
 # ID do grupo para enviar notificações
-DESTINATARIO_GRUPO = -1002649552991  # Substitua pelo ID do grupo Alertas-Promocao
+DESTINATARIO_GRUPO = -1002649552991
 
 # ID do usuário para notificações diretas (seu ID no Telegram)
-DESTINATARIO_USUARIO = 6222930920  # Substitua pelo seu User ID(vitoriaid)
+DESTINATARIO_USUARIO = 6222930920
 
 # Função para carregar palavras-chave
 def carregar_palavras():
@@ -51,107 +52,94 @@ def salvar_palavras(palavras):
 # Lista de palavras-chave
 palavras_chave = carregar_palavras()
 
-# Iniciar cliente do Telegram para Userbot (sem bot_token)
+# Iniciar cliente do Telegram para Userbot
 client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
 
 async def main():
-    # Conectar o cliente e verificar autenticação
     await client.connect()
 
     if not await client.is_user_authorized():
         print("Sessão não está autorizada. Por favor, faça a autenticação localmente.")
-        await client.start()  # Pedirá o número de telefone e o código de verificação localmente
+        await client.start()
 
     print("Sessão autenticada com sucesso!")
 
-    # Evento para lidar com comandos de texto
+    # <--- MODIFICAÇÃO: Função /start volta a ser um menu de texto claro --->
     @client.on(events.NewMessage(pattern='/start'))
     async def start(event):
         mensagem = (
             "🤖 **Bem-vindo ao Userbot de Filtro de Palavras!**\n\n"
-            "Use os comandos abaixo para gerenciar palavras-chave e filtrar mensagens:\n"
-            "🟢 `/add palavra1, palavra2` - Adiciona novas palavras-chave.\n"
-            "🟢 `/remover palavra1, palavra2` - Remove palavras-chave.\n"
-            "🟢 `/ver` - Lista todas as palavras configuradas.\n\n"
-            "📌 O bot monitora mensagens automaticamente em todos os grupos e canais que você participa."
+            "Use os comandos abaixo para gerenciar o bot:\n\n"
+            "🟢 `/add palavra1, palavra2`\n*Adiciona novas palavras-chave.*\n\n"
+            "🟢 `/remover palavra1, palavra2`\n*Remove palavras-chave existentes.*\n\n"
+            "🟢 `/ver`\n*Lista todas as palavras que estão sendo monitoradas.*\n\n"
+            "📌 O bot monitora automaticamente todos os grupos e canais que você participa."
         )
         await event.respond(mensagem)
 
+    # Função para /add continua igual
     @client.on(events.NewMessage(pattern='/add'))
     async def add_palavra(event):
-        if not event.message.message.strip().split(" ", 1)[-1]:
+        partes = event.message.message.strip().split(" ", 1)
+        if len(partes) < 2 or not partes[1]:
             await event.respond(
                 "⚠️ Por favor, forneça palavras para adicionar.\n"
                 "💡 Uso: `/add palavra1, palavra2, palavra3`"
             )
             return
-
-        novas_palavras = [
-            p.strip().lower()
-            for p in event.message.message.split(" ", 1)[-1].split(",")
-        ]
+        novas_palavras = [p.strip().lower() for p in partes[1].split(",")]
         palavras_adicionadas = []
         for palavra in novas_palavras:
             if palavra and palavra not in palavras_chave:
                 palavras_chave.append(palavra)
                 palavras_adicionadas.append(palavra)
-
         salvar_palavras(palavras_chave)
-
         if palavras_adicionadas:
-            await event.respond(
-                f"✅ Palavras adicionadas com sucesso:\n{', '.join(palavras_adicionadas)}"
-            )
+            await event.respond(f"✅ Palavras adicionadas com sucesso:\n{', '.join(palavras_adicionadas)}")
         else:
             await event.respond("⚠️ Nenhuma palavra nova foi adicionada.")
 
+    # Função para /remover continua igual
     @client.on(events.NewMessage(pattern='/remover'))
     async def remover_palavra(event):
-        if not event.message.message.strip().split(" ", 1)[-1]:
+        partes = event.message.message.strip().split(" ", 1)
+        if len(partes) < 2 or not partes[1]:
             await event.respond(
                 "⚠️ Por favor, forneça palavras para remover.\n"
                 "💡 Uso: `/remover palavra1, palavra2, palavra3`"
             )
             return
-
-        palavras_para_remover = [
-            p.strip().lower()
-            for p in event.message.message.split(" ", 1)[-1].split(",")
-        ]
+        palavras_para_remover = [p.strip().lower() for p in partes[1].split(",")]
         palavras_removidas = []
         for palavra in palavras_para_remover:
             if palavra in palavras_chave:
                 palavras_chave.remove(palavra)
                 palavras_removidas.append(palavra)
-
         salvar_palavras(palavras_chave)
-
         if palavras_removidas:
-            await event.respond(
-                f"✅ Palavras removidas com sucesso:\n{', '.join(palavras_removidas)}"
-            )
+            await event.respond(f"✅ Palavras removidas com sucesso:\n{', '.join(palavras_removidas)}")
         else:
             await event.respond("⚠️ Nenhuma palavra foi encontrada para remover.")
 
+    # Função para /ver continua igual
     @client.on(events.NewMessage(pattern='/ver'))
-    async def verificar_palavras(event):
+    async def verificar_palavras_comando(event):
         if not palavras_chave:
             await event.respond("🔍 Nenhuma palavra-chave foi configurada ainda.")
         else:
-            await event.respond(
-                "🔑 Palavras-chave configuradas:\n" + "\n".join(palavras_chave)
-            )
+            lista_palavras = "🔑 **Palavras-chave configuradas:**\n\n- " + "\n- ".join(palavras_chave)
+            await event.respond(lista_palavras)
+            
+    # O evento de CallbackQuery foi removido, pois não é mais necessário
 
-    # Evento para monitorar mensagens
+    # Evento para monitorar mensagens (permanece igual)
     @client.on(events.NewMessage)
     async def monitorar_mensagens(event):
         try:
-            if not event.message.message:
+            if not event.message or not event.message.message:
                 return
-
             texto = event.message.message.lower()
             for palavra in palavras_chave:
-                # Usar regex para encontrar a palavra isolada
                 padrao = r'\b' + re.escape(palavra) + r'\b'
                 if re.search(padrao, texto):
                     mensagem_alerta = (
@@ -159,42 +147,29 @@ async def main():
                         f"Mensagem: {event.message.message}\n\n"
                         f"Grupo: {event.chat.title if event.chat else 'Mensagem direta'}"
                     )
-                    # Envia para o grupo
                     await client.send_message(DESTINATARIO_GRUPO, f"{mensagem_alerta} \n @Hudson_Jr21")
-                    # Envia notificação direta para o usuário com menção
-                    # await client.send_message(DESTINATARIO_USUARIO, mensagem_alerta)
                     break
         except TypeNotFoundError as e:
             print(f"Erro ao processar mensagem: {e}")
         except Exception as e:
             print(f"Erro inesperado: {e}")
 
-    # Inicie o servidor HTTP para manter o bot ativo
+    # Inicie o servidor HTTP
     keep_alive()
 
     # Conecta-se e aguarda desconexões
     print("Monitorando mensagens... Pressione Ctrl+C para sair.")
     await client.run_until_disconnected()
 
-
-# <--- MODIFICAÇÃO 2: Bloco de execução robusto adicionado --->
+# Bloco de execução robusto (permanece igual)
 if __name__ == "__main__":
-    # O loop infinito que garante que o bot sempre tente ficar online.
     while True:
         try:
-            # O asyncio.run vai rodar a função main. 
-            # Se a conexão com o Telegram cair, ele vai gerar um erro.
             asyncio.run(main())
-
         except KeyboardInterrupt:
-            # Esta parte é para que você ainda consiga parar o bot com Ctrl+C.
             print("Bot encerrado manualmente.")
-            break # Quebra o loop e encerra o programa
-
+            break
         except Exception as e:
-            # Aqui é a mágica: qualquer outro erro (queda de conexão, etc.)
-            # será capturado aqui.
             print(f"Ocorreu um erro inesperado que derrubou o bot: {e}")
             print("Tentando reiniciar em 30 segundos...")
-            # Ele espera 30 segundos antes de o loop tentar rodar o bot de novo.
             time.sleep(30)
